@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "co.median.android.pwozepp",
+      "sha256_cert_fingerprints": [
+        "0D:9C:4A:11:51:DF:1A:2F:67:3F:4D:C3:FD:11:F3:0B:96:95:39:B5:3D:E1:3A:D6:95:EC:5D:5D:E3:BC:62:52"
+      ]
+    }
+  }
+]

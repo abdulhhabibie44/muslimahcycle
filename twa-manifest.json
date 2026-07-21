@@ -1,0 +1,60 @@
+{
+  "packageId": "com.muslimahcycle.app",
+  "host": "muslimah-cycle.netlify.app/",
+  "name": "Muslimah Cycle",
+  "launcherName": "MCycle",
+  "display": "standalone",
+  "themeColor": "#0B6E4F",
+  "themeColorDark": "#000000",
+  "navigationColor": "#000000",
+  "navigationColorDark": "#000000",
+  "navigationDividerColor": "#000000",
+  "navigationDividerColorDark": "#000000",
+  "backgroundColor": "#F7F3EC",
+  "enableNotifications": true,
+  "startUrl": "/index.html",
+  "iconUrl": "https://muslimah-cycle.netlify.app/assets/icons/icon-512.png",
+  "maskableIconUrl": "https://muslimah-cycle.netlify.app/assets/icons/icon-maskable-512.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "D:\\HABIBIE\\DEVELOP\\keystores\\upload-keystores",
+    "alias": "upload-keystore"
+  },
+  "appVersionName": "1",
+  "appVersionCode": 1,
+  "shortcuts": [
+    {
+      "name": "Catat Haid",
+      "shortName": "Catat Haid",
+      "url": "https://muslimah-cycle.netlify.app/index.html?page=catat-haid",
+      "chosenIconUrl": "https://muslimah-cycle.netlify.app/assets/icons/icon-192.png"
+    },
+    {
+      "name": "Kalender",
+      "shortName": "Kalender",
+      "url": "https://muslimah-cycle.netlify.app/index.html?page=kalender",
+      "chosenIconUrl": "https://muslimah-cycle.netlify.app/assets/icons/icon-192.png"
+    }
+  ],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://muslimah-cycle.netlify.app/manifest.json",
+  "fallbackType": "customtabs",
+  "features": {},
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://muslimah-cycle.netlify.app/",
+  "minSdkVersion": 21,
+  "orientation": "portrait",
+  "fingerprints": [],
+  "additionalTrustedOrigins": [],
+  "retainedBundles": [],
+  "protocolHandlers": [],
+  "fileHandlers": [],
+  "launchHandlerClientMode": "",
+  "displayOverride": [],
+  "appVersion": "1"
+}

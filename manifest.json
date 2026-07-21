@@ -1,0 +1,37 @@
+{
+  "name": "Muslimah Cycle",
+  "short_name": "MuslimahCycle",
+  "description": "Pelacak siklus haid dan pendamping ibadah muslimah, 100% offline.",
+  "id": "/index.html",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F7F3EC",
+  "theme_color": "#0B6E4F",
+  "lang": "id",
+  "dir": "ltr",
+  "categories": ["health", "lifestyle", "medical"],
+  "prefer_related_applications": false,
+  "icons": [
+    { "src": "assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    {
+      "name": "Catat Haid",
+      "short_name": "Catat Haid",
+      "description": "Langsung catat data haid baru",
+      "url": "./index.html?page=catat-haid",
+      "icons": [{ "src": "assets/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Kalender",
+      "short_name": "Kalender",
+      "description": "Buka kalender Masehi & Hijriyah",
+      "url": "./index.html?page=kalender",
+      "icons": [{ "src": "assets/icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

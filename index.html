@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Muslimah Cycle</title>
+<meta name="theme-color" content="#0B6E4F">
+<meta name="description" content="Pelacak siklus haid & pendamping ibadah muslimah, 100% offline.">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="assets/icons/icon-192.png">
+<link rel="apple-touch-icon" href="assets/icons/icon-192.png">
+
+<!-- Registrasi Service Worker dilakukan sesegera mungkin di sini, TIDAK menunggu
+     Alpine.js atau library CDN lain selesai dimuat -- supaya konsisten terdeteksi
+     oleh alat analisis PWA (PWABuilder, Lighthouse, dll) dan lebih tahan gangguan
+     kalau ada script lain gagal/lambat dimuat. -->
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('service-worker.js').then((reg) => {
+        reg.update(); // paksa cek versi baru setiap kali app dibuka (penting terutama di iOS)
+      }).catch(() => {});
+    });
+
+    // Kalau service worker baru sudah aktif mengambil alih, reload sekali
+    // supaya versi terbaru langsung dipakai tanpa perlu tutup-buka app manual.
+    let refreshedOnce = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (refreshedOnce) return;
+      refreshedOnce = true;
+      window.location.reload();
+    });
+  }
+</script>
+
+<!-- Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Lora:ital,wght@0,500;0,600;1,500&family=Amiri:wght@400;700&display=swap" rel="stylesheet">
+
+<!-- Tailwind CSS (CDN, dikonfigurasi untuk dark mode class-based) -->
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    darkMode: 'class',
+    theme: {
+      extend: {
+        colors: {
+          emerald: { DEFAULT: 'var(--mc-emerald)', light: 'var(--mc-emerald-light)' },
+          blush: { DEFAULT: 'var(--mc-pink)', light: 'var(--mc-pink-light)' },
+          gold: { DEFAULT: 'var(--mc-gold)', light: 'var(--mc-gold-light)' }
+        },
+        fontFamily: {
+          sans: ['Plus Jakarta Sans', 'sans-serif'],
+          display: ['Lora', 'serif'],
+          arabic: ['Amiri', 'serif']
+        }
+      }
+    }
+  };
+</script>
+
+<!-- Vendor libraries -->
+<script src="https://unpkg.com/dexie@3/dist/dexie.js"></script>
+<script src="https://unpkg.com/dayjs@1/dayjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6/index.global.min.js"></script>
+<script>
+  // Jaga-jaga: kalau CDN utama FullCalendar gagal dimuat (mis. jsdelivr down / offline),
+  // coba muat dari CDN cadangan (unpkg) secara sinkron sebelum lanjut parsing.
+  if (typeof FullCalendar === 'undefined') {
+    document.write('<script src="https:\/\/unpkg.com\/fullcalendar@6\/index.global.min.js"><\/script>');
+  }
+</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script defer src="https://unpkg.com/alpinejs@3/dist/cdn.min.js"></script>
+
+<link rel="stylesheet" href="styles/main.css">
+</head>
+<body x-data="app()" x-init="init()" class="min-h-screen pb-24" :class="settings?.fontSize">
+
+<!-- ============ TOP BAR ============ -->
+<header class="sticky top-0 z-30 backdrop-blur bg-[var(--mc-bg)]/90 border-b" style="border-color:var(--mc-border)">
+  <div class="max-w-lg mx-auto px-5 py-4 flex items-center justify-between">
+    <div class="flex items-center gap-2">
+      <div class="w-9 h-9 rounded-2xl bg-emerald flex items-center justify-center text-white">
+        <i data-lucide="moon-star" class="w-5 h-5"></i>
+      </div>
+      <div>
+        <h1 class="font-display font-semibold text-base leading-none">Muslimah Cycle</h1>
+        <p class="text-[11px] opacity-60 leading-none mt-1" x-text="todayGregorian"></p>
+      </div>
+    </div>
+    <button @click="goto('pengaturan')" class="w-9 h-9 rounded-full flex items-center justify-center hover:bg-emerald-light/60">
+      <i data-lucide="settings" class="w-5 h-5"></i>
+    </button>
+  </div>
+</header>
+
+<main class="max-w-lg mx-auto px-5 pt-5" x-cloak>
+
+  <!-- ============ LOADING ============ -->
+  <div x-show="!ready" class="text-center py-24 opacity-60">Memuat data…</div>
+
+  <template x-if="ready">
+  <div>
+
+  <!-- ============================================================ -->
+  <!-- DASHBOARD -->
+  <!-- ============================================================ -->
+  <section x-show="page==='dashboard'" class="mc-fade-in space-y-4">
+
+    <div class="mc-card p-6 relative overflow-hidden">
+      <div class="absolute -right-8 -top-8 w-32 h-32 rounded-full bg-blush-light"></div>
+      <div class="relative flex items-start justify-between gap-3">
+        <div>
+          <p class="text-sm opacity-60">Hari Siklus</p>
+          <p class="font-display text-5xl font-semibold mt-1" x-text="currentCycleDay"></p>
+          <p class="text-sm mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-light text-emerald font-medium">
+            <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+            <span x-text="statusLabel"></span>
+          </p>
+        </div>
+        <button @click="goto('catat-haid')" class="flex-shrink-0 flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-emerald text-white text-sm font-medium shadow-lg shadow-emerald/20">
+          <i data-lucide="plus" class="w-4 h-4"></i> Catat
+        </button>
+      </div>
+    </div>
+
+    <template x-if="hasOpenPeriod">
+      <button @click="openEndPeriodShortcut()" class="w-full rounded-2xl p-4 flex items-center justify-between border" style="background:var(--mc-pink-light); border-color:var(--mc-pink);">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-full bg-blush flex items-center justify-center">
+            <i data-lucide="check" class="w-4 h-4 text-white"></i>
+          </div>
+          <div class="text-left">
+            <p class="text-sm font-medium">Sudah selesai haid?</p>
+            <p class="text-[11px] opacity-60">Tap untuk catat tanggal selesai</p>
+          </div>
+        </div>
+        <i data-lucide="chevron-right" class="w-5 h-5 opacity-40"></i>
+      </button>
+    </template>
+
+    <div class="grid grid-cols-2 gap-3">
+      <div class="rounded-2xl p-4 border border-rose-200 bg-rose-100">
+        <p class="text-xs text-rose-700/70">Haid Berikutnya</p>
+        <p class="font-display text-2xl font-semibold mt-1 text-rose-900" x-text="daysUntilNextPeriod !== null ? daysUntilNextPeriod + ' hari' : '-'"></p>
+        <p class="text-[11px] text-rose-700/60 mt-0.5" x-text="nextPeriod ? FormatUtil.formatShortDate(nextPeriod) : 'Catat haid dulu'"></p>
+      </div>
+      <div class="rounded-2xl p-4 border" style="background:var(--mc-emerald-light); border-color:var(--mc-border)">
+        <p class="text-xs opacity-60">Masa Subur</p>
+        <template x-if="fertileWindow">
+          <p class="text-sm font-medium mt-2" x-text="FormatUtil.formatShortDate(fertileWindow.fertileStart) + ' – ' + FormatUtil.formatShortDate(fertileWindow.fertileEnd)"></p>
+        </template>
+        <template x-if="!fertileWindow"><p class="text-sm opacity-50 mt-2">-</p></template>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-3">
+      <div class="rounded-2xl p-4 border flex items-center justify-between bg-amber-50" style="border-color:var(--mc-border)">
+        <div>
+          <p class="text-xs font-medium text-amber-700/80">Prediksi Ovulasi</p>
+          <p class="text-sm font-semibold mt-1 text-amber-900" x-text="fertileWindow ? FormatUtil.formatShortDate(fertileWindow.ovulation) : '-'"></p>
+        </div>
+        <i data-lucide="egg" class="w-6 h-6 text-amber-500 flex-shrink-0 ml-2"></i>
+      </div>
+      <div class="rounded-2xl p-4 border bg-sky-50" style="border-color:var(--mc-border)">
+        <p class="text-xs font-medium text-sky-700/80 mb-1.5">Ringkasan Bulan Ini</p>
+        <div class="flex items-center gap-2.5">
+          <div class="w-10 h-10 rounded-full border-2 border-sky-300 flex items-center justify-center font-semibold text-sm text-sky-700 flex-shrink-0" x-text="monthSummary.occurrences + 'x'"></div>
+          <p class="text-xs font-medium text-sky-700">Haid Bulan Ini</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="rounded-2xl p-4 border" style="background:var(--mc-gold-light); border-color:var(--mc-border)">
+      <div class="flex items-center justify-between mb-2">
+        <p class="text-xs opacity-60">Ringkasan Qadha — Utang Puasa</p>
+        <button @click="goto('ibadah')" class="text-xs font-medium" style="color:var(--mc-gold)">Detail →</button>
+      </div>
+      <div class="flex items-center justify-between text-sm">
+        <span>Sisa Utang</span>
+        <span class="font-semibold" x-text="FormatUtil.pluralHari(qadhaSummary.remaining)"></span>
+      </div>
+      <div class="w-full h-2 rounded-full bg-white/60 mt-2 overflow-hidden">
+        <div class="h-full" :style="`width:${qadhaSummary.progress}%; background:var(--mc-gold)`"></div>
+      </div>
+    </div>
+
+    <div class="mc-card p-4" x-init="$nextTick(() => renderMiniChart())">
+      <p class="text-xs opacity-60 mb-2">Tren Siklus</p>
+      <canvas id="chartMini" height="90"></canvas>
+    </div>
+
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- CATAT HAID -->
+  <!-- ============================================================ -->
+  <section x-show="page==='catat-haid'" class="mc-fade-in space-y-4">
+    <h2 class="font-display text-xl font-semibold" x-text="cycleForm.id ? 'Edit Data Haid' : 'Catat Haid Baru'"></h2>
+
+    <div class="mc-card p-4 space-y-4">
+      <div>
+        <label class="text-xs opacity-60">Tanggal Mulai</label>
+        <input type="date" x-model="cycleForm.startDate" class="w-full mt-1 px-3 py-2.5 rounded-xl border bg-transparent" style="border-color:var(--mc-border)">
+      </div>
+      <div>
+        <label class="text-xs opacity-60">Tanggal Selesai (opsional)</label>
+        <input type="date" x-model="cycleForm.endDate" class="w-full mt-1 px-3 py-2.5 rounded-xl border bg-transparent" style="border-color:var(--mc-border)">
+      </div>
+      <div>
+        <label class="text-xs opacity-60 block mb-1.5">Intensitas</label>
+        <div class="grid grid-cols-3 gap-2">
+          <template x-for="i in C.INTENSITY" :key="i.id">
+            <button type="button" @click="cycleForm.intensity=i.id" class="py-2 rounded-xl text-sm border" :class="cycleForm.intensity===i.id ? 'bg-emerald text-white border-emerald' : 'border-[var(--mc-border)]'" x-text="i.label"></button>
+          </template>
+        </div>
+      </div>
+      <div>
+        <label class="text-xs opacity-60">Warna Darah</label>
+        <select x-model="cycleForm.bloodColor" class="w-full mt-1 px-3 py-2.5 rounded-xl border bg-transparent" style="border-color:var(--mc-border)">
+          <template x-for="b in C.BLOOD_COLORS" :key="b.id"><option :value="b.id" x-text="b.label"></option></template>
+        </select>
+      </div>
+      <label class="flex items-center gap-2 text-sm">
+        <input type="checkbox" x-model="cycleForm.hasSpotting" class="w-4 h-4 accent-emerald"> Ada flek
+      </label>
+      <div>
+        <label class="text-xs opacity-60">Catatan</label>
+        <textarea x-model="cycleForm.note" rows="3" class="w-full mt-1 px-3 py-2.5 rounded-xl border bg-transparent" style="border-color:var(--mc-border)"></textarea>
+      </div>
+      <button @click="saveCycleForm()" class="w-full py-3 rounded-xl bg-emerald text-white font-medium">Simpan</button>
+    </div>
+
+    <div>
+      <h3 class="text-sm font-medium opacity-70 mb-2">Riwayat</h3>
+      <div class="space-y-2">
+        <template x-for="c in [...cycles].reverse()" :key="c.id">
+          <div class="mc-card p-3 flex items-center justify-between">
+            <div>
+              <p class="text-sm font-medium" x-text="FormatUtil.formatShortDate(c.startDate) + (c.endDate ? ' – ' + FormatUtil.formatShortDate(c.endDate) : '')"></p>
+              <p class="text-xs opacity-50" x-text="c.intensity"></p>
+            </div>
+            <div class="flex gap-1">
+              <button @click="editCycle(c)" class="w-8 h-8 rounded-full flex items-center justify-center hover:bg-emerald-light"><i data-lucide="pencil" class="w-4 h-4"></i></button>
+              <button @click="deleteCycle(c.id)" class="w-8 h-8 rounded-full flex items-center justify-center hover:bg-red-50 text-red-500"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+            </div>
+          </div>
+        </template>
+        <p x-show="cycles.length===0" class="text-sm opacity-50 text-center py-6">Belum ada data</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- GEJALA & MOOD -->
+  <!-- ============================================================ -->
+  <section x-show="page==='gejala'" class="mc-fade-in space-y-4">
+    <h2 class="font-display text-xl font-semibold">Gejala & Mood</h2>
+    <div class="mc-card p-4 space-y-4">
+      <input type="date" x-model="symptomForm.date" class="w-full px-3 py-2.5 rounded-xl border bg-transparent" style="border-color:var(--mc-border)">
+      <div>
+        <label class="text-xs opacity-60 block mb-2">Gejala</label>
+        <div class="grid grid-cols-2 gap-2">
+          <template x-for="s in C.SYMPTOMS" :key="s.id">
+            <button type="button" @click="toggleSymptom(s.id)" class="py-2 px-3 rounded-xl text-sm border flex items-center gap-2" :class="symptomForm.symptomList.includes(s.id) ? 'bg-blush-light border-blush text-pink-600' : 'border-[var(--mc-border)]'">
+              <i :data-lucide="s.icon" class="w-4 h-4"></i><span x-text="s.label"></span>
+            </button>
+          </template>
+        </div>
+      </div>
+      <div>
+        <label class="text-xs opacity-60 block mb-2">Mood</label>
+        <div class="flex justify-between">
+          <template x-for="m in C.MOODS" :key="m.id">
+            <button type="button" @click="symptomForm.mood=m.id" class="w-11 h-11 rounded-full text-xl flex items-center justify-center border" :class="symptomForm.mood===m.id ? 'bg-emerald-light border-emerald scale-110' : 'border-transparent'" x-text="m.emoji"></button>
+          </template>
+        </div>
+      </div>
+      <button @click="saveSymptomForm()" class="w-full py-3 rounded-xl bg-emerald text-white font-medium">Simpan</button>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- CATATAN HARIAN -->
+  <!-- ============================================================ -->
+  <section x-show="page==='catatan'" class="mc-fade-in space-y-4" x-init="loadNotes()">
+    <h2 class="font-display text-xl font-semibold">Catatan Harian</h2>
+    <div class="mc-card p-4 space-y-3">
+      <input type="date" x-model="noteForm.date" class="w-full px-3 py-2.5 rounded-xl border bg-transparent" style="border-color:var(--mc-border)">
+      <textarea x-model="noteForm.text" rows="3" placeholder="Tulis catatanmu…" class="w-full px-3 py-2.5 rounded-xl border bg-transparent" style="border-color:var(--mc-border)"></textarea>
+      <button @click="saveNote()" class="w-full py-3 rounded-xl bg-emerald text-white font-medium">Simpan Catatan</button>
+    </div>
+    <div class="space-y-2">
+      <template x-for="n in allNotes" :key="n.id">
+        <div class="mc-card p-3">
+          <div class="flex justify-between items-start">
+            <p class="text-xs opacity-50" x-text="FormatUtil.formatShortDate(n.date)"></p>
+            <button @click="deleteNote(n.id)" class="text-red-400"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+          </div>
+          <p class="text-sm mt-1" x-text="n.text"></p>
+        </div>
+      </template>
+      <p x-show="allNotes.length===0" class="text-sm opacity-50 text-center py-6">Belum ada catatan</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- KALENDER -->
+  <!-- ============================================================ -->
+  <section x-show="page==='kalender'" class="mc-fade-in space-y-4">
+    <h2 class="font-display text-xl font-semibold">Kalender</h2>
+    <div class="mc-card p-3">
+      <div id="calendarEl"></div>
+    </div>
+    <div class="mc-card p-4">
+      <p class="text-xs opacity-60 mb-2">Legenda</p>
+      <div class="grid grid-cols-2 gap-2 text-xs">
+        <template x-for="l in C.LEGEND" :key="l.type">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full inline-block" :style="`background:${l.color}`"></span>
+            <span x-text="l.label"></span>
+          </div>
+        </template>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- STATISTIK -->
+  <!-- ============================================================ -->
+  <section x-show="page==='statistik'" class="mc-fade-in space-y-4">
+    <h2 class="font-display text-xl font-semibold">Statistik</h2>
+    <div class="mc-card p-4">
+      <p class="text-sm font-medium mb-2">Panjang Siklus & Lama Haid</p>
+      <canvas id="chartCycleLength" height="180"></canvas>
+    </div>
+    <div class="mc-card p-4">
+      <p class="text-sm font-medium mb-2">Distribusi Mood</p>
+      <canvas id="chartMood" height="200"></canvas>
+    </div>
+    <div class="mc-card p-4">
+      <p class="text-sm font-medium mb-2">Frekuensi Gejala</p>
+      <canvas id="chartSymptom" height="220"></canvas>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- IBADAH -->
+  <!-- ============================================================ -->
+  <section x-show="page==='ibadah'" class="mc-fade-in space-y-4">
+    <h2 class="font-display text-xl font-semibold">Qadha Puasa</h2>
+
+    <div class="mc-card p-5">
+      <p class="text-xs opacity-60">Dashboard Utang Puasa</p>
+      <div class="grid grid-cols-3 gap-2 mt-3 text-center">
+        <div><p class="text-lg font-semibold" x-text="qadhaSummary.totalDebt"></p><p class="text-[11px] opacity-50">Total Utang</p></div>
+        <div><p class="text-lg font-semibold text-emerald" x-text="qadhaSummary.totalPaid"></p><p class="text-[11px] opacity-50">Sudah Dibayar</p></div>
+        <div><p class="text-lg font-semibold text-pink-500" x-text="qadhaSummary.remaining"></p><p class="text-[11px] opacity-50">Sisa</p></div>
+      </div>
+      <div class="w-full h-2.5 rounded-full bg-emerald-light mt-4 overflow-hidden">
+        <div class="h-full bg-emerald transition-all" :style="`width:${qadhaSummary.progress}%`"></div>
+      </div>
+      <p class="text-[11px] text-right mt-1 opacity-50" x-text="qadhaSummary.progress + '%'"></p>
+    </div>
+
+    <div class="mc-card p-4 space-y-3">
+      <p class="text-sm font-medium">Tambah Utang Puasa Manual</p>
+      <p class="text-[11px] opacity-50 -mt-1">Untuk mencatat utang puasa dari sebelum pakai aplikasi ini, atau koreksi manual di luar hitungan otomatis.</p>
+      <div class="grid grid-cols-2 gap-2">
+        <input type="number" x-model.number="manualQadhaForm.hijriYear" placeholder="Tahun Hijriyah" class="px-3 py-2.5 rounded-xl border bg-transparent text-sm" style="border-color:var(--mc-border)">
+        <input type="number" min="1" x-model.number="manualQadhaForm.amount" placeholder="Jumlah hari" class="px-3 py-2.5 rounded-xl border bg-transparent text-sm" style="border-color:var(--mc-border)">
+      </div>
+      <input type="date" x-model="manualQadhaForm.date" class="w-full px-3 py-2.5 rounded-xl border bg-transparent text-sm" style="border-color:var(--mc-border)">
+      <input type="text" x-model="manualQadhaForm.note" placeholder="Catatan (opsional, mis. 'sebelum pakai app')" class="w-full px-3 py-2.5 rounded-xl border bg-transparent text-sm" style="border-color:var(--mc-border)">
+      <button @click="addManualQadha()" class="w-full py-3 rounded-xl border border-emerald text-emerald font-medium">Tambah Utang</button>
+    </div>
+
+    <div class="mc-card p-4 space-y-3">
+      <p class="text-sm font-medium">Bayar Qadha</p>
+      <div class="grid grid-cols-2 gap-2">
+        <input type="date" x-model="qadhaPayForm.date" class="px-3 py-2.5 rounded-xl border bg-transparent text-sm" style="border-color:var(--mc-border)">
+        <input type="number" min="1" x-model.number="qadhaPayForm.amount" placeholder="Jumlah hari" class="px-3 py-2.5 rounded-xl border bg-transparent text-sm" style="border-color:var(--mc-border)">
+      </div>
+      <input type="text" x-model="qadhaPayForm.note" placeholder="Catatan (opsional)" class="w-full px-3 py-2.5 rounded-xl border bg-transparent text-sm" style="border-color:var(--mc-border)">
+      <button @click="payQadha()" class="w-full py-3 rounded-xl bg-emerald text-white font-medium">Catat Pembayaran</button>
+    </div>
+
+    <div>
+      <p class="text-sm font-medium opacity-70 mb-2">Riwayat Qadha</p>
+      <div class="space-y-2">
+        <template x-for="d in qadhaSummary.details" :key="d.id">
+          <div class="mc-card p-3">
+            <p class="text-xs opacity-60 mb-1" x-text="'Tahun ' + d.hijriYear + ' H — Utang ' + d.totalDebt + ' hari'"></p>
+
+            <template x-if="d.manualEntries && d.manualEntries.length">
+              <div class="mb-1">
+                <p class="text-[10px] uppercase tracking-wide opacity-40 mt-1">Input Manual</p>
+                <template x-for="m in d.manualEntries" :key="m.id">
+                  <div class="flex justify-between items-center text-sm py-1 border-t" style="border-color:var(--mc-border)">
+                    <span x-text="FormatUtil.formatShortDate(m.date) + (m.note ? ' · ' + m.note : '')"></span>
+                    <div class="flex items-center gap-2">
+                      <span class="font-medium" x-text="'+' + m.amount"></span>
+                      <button @click="deleteManualQadha(m.id)" class="text-red-400"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+                    </div>
+                  </div>
+                </template>
+              </div>
+            </template>
+
+            <template x-if="d.history && d.history.length">
+              <div>
+                <p class="text-[10px] uppercase tracking-wide opacity-40 mt-1">Pembayaran</p>
+                <template x-for="h in d.history" :key="h.id">
+                  <div class="flex justify-between text-sm py-1 border-t" style="border-color:var(--mc-border)">
+                    <span x-text="FormatUtil.formatShortDate(h.date) + (h.note ? ' · ' + h.note : '')"></span>
+                    <span class="font-medium text-emerald" x-text="'-' + h.amount"></span>
+                  </div>
+                </template>
+              </div>
+            </template>
+          </div>
+        </template>
+        <p x-show="qadhaSummary.details.length===0" class="text-sm opacity-50 text-center py-6">Belum ada utang puasa tercatat</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <!-- PENGATURAN -->
+  <!-- ============================================================ -->
+  <section x-show="page==='pengaturan'" class="mc-fade-in space-y-4" x-init="manualHijriForm = {...settings.hijriManualDates}">
+    <h2 class="font-display text-xl font-semibold">Pengaturan</h2>
+
+    <div class="mc-card p-4 space-y-3">
+      <p class="text-sm font-medium">Tema</p>
+      <div class="grid grid-cols-3 gap-2">
+        <template x-for="t in ['light','dark','system']" :key="t">
+          <button @click="setTheme(t)" class="py-2 rounded-xl text-sm border capitalize" :class="settings.theme===t ? 'bg-emerald text-white border-emerald' : 'border-[var(--mc-border)]'" x-text="t"></button>
+        </template>
+      </div>
+    </div>
+
+    <div class="mc-card p-4 space-y-3">
+      <p class="text-sm font-medium">Ukuran Font</p>
+      <div class="grid grid-cols-3 gap-2">
+        <template x-for="s in ['sm','md','lg']" :key="s">
+          <button @click="setFontSize(s)" class="py-2 rounded-xl text-sm border uppercase" :class="settings.fontSize===s ? 'bg-emerald text-white border-emerald' : 'border-[var(--mc-border)]'" x-text="s"></button>
+        </template>
+      </div>
+    </div>
+
+    <div class="mc-card p-4 space-y-3">
+      <p class="text-sm font-medium">Kalender Islam</p>
+      <div class="grid grid-cols-2 gap-2">
+        <button @click="setHijriMode('auto')" class="py-2 rounded-xl text-sm border" :class="settings.hijriMode==='auto' ? 'bg-emerald text-white border-emerald' : 'border-[var(--mc-border)]'">Mode Otomatis</button>
+        <button @click="setHijriMode('manual')" class="py-2 rounded-xl text-sm border" :class="settings.hijriMode==='manual' ? 'bg-emerald text-white border-emerald' : 'border-[var(--mc-border)]'">Mode Manual</button>
+      </div>
+      <template x-if="settings.hijriMode==='manual'">
+        <div class="space-y-2 pt-2">
+          <div>
+            <label class="text-xs opacity-60">Awal Ramadhan</label>
+            <input type="date" x-model="manualHijriForm.ramadhanStart" class="w-full px-3 py-2 rounded-xl border bg-transparent text-sm" style="border-color:var(--mc-border)">
+          </div>
+          <div>
+            <label class="text-xs opacity-60">Awal Syawal (Idul Fitri)</label>
+            <input type="date" x-model="manualHijriForm.syawalStart" class="w-full px-3 py-2 rounded-xl border bg-transparent text-sm" style="border-color:var(--mc-border)">
+          </div>
+          <div>
+            <label class="text-xs opacity-60">Awal Zulhijah</label>
+            <input type="date" x-model="manualHijriForm.zulhijahStart" class="w-full px-3 py-2 rounded-xl border bg-transparent text-sm" style="border-color:var(--mc-border)">
+          </div>
+          <button @click="saveManualHijri()" class="w-full py-2.5 rounded-xl bg-emerald text-white text-sm font-medium">Simpan Tanggal</button>
+          <p class="text-[11px] opacity-50">Penentuan awal bulan Hijriyah dapat berbeda mengikuti keputusan pemerintah. Isi tanggal di atas agar perhitungan utang puasa mengikuti penetapan yang kamu pakai.</p>
+        </div>
+      </template>
+    </div>
+
+    <div class="mc-card p-4 space-y-3">
+      <p class="text-sm font-medium">Puasa Sunnah</p>
+      <template x-for="key in ['senin','kamis','ayyamulBidh','arafah','asyura','tasua']" :key="key">
+        <label class="flex items-center justify-between text-sm py-1">
+          <span class="capitalize" x-text="key"></span>
+          <input type="checkbox" :checked="settings.sunnahFastingEnabled[key]!==false" @change="toggleSunnah(key)" class="w-4 h-4 accent-emerald">
+        </label>
+      </template>
+    </div>
+
+    <div class="mc-card p-4 space-y-1">
+      <label class="flex items-center justify-between text-sm">
+        <div>
+          <p class="font-medium">Saran Otomatis Puasa Qadha</p>
+          <p class="text-[11px] opacity-50 mt-0.5">Modal pengingat kalau besok puasa sunnah & kamu masih punya utang qadha</p>
+        </div>
+        <input type="checkbox" :checked="settings.smartQadhaReminder!==false" @change="toggleSmartQadhaReminder()" class="w-4 h-4 accent-emerald flex-shrink-0 ml-3">
+      </label>
+      <button @click="recheckQadhaSuggestionNow()" class="w-full py-2.5 rounded-xl border text-sm font-medium mt-2" style="border-color:var(--mc-border)">Cek Saran Qadha Sekarang</button>
+    </div>
+
+    <div class="mc-card p-4 space-y-2">
+      <p class="text-sm font-medium mb-1">Backup Data</p>
+      <button @click="BackupService.exportJSON()" class="w-full py-2.5 rounded-xl border text-sm font-medium" style="border-color:var(--mc-border)">Ekspor JSON</button>
+      <button @click="BackupService.exportCSV()" class="w-full py-2.5 rounded-xl border text-sm font-medium" style="border-color:var(--mc-border)">Ekspor CSV</button>
+      <label class="w-full block text-center py-2.5 rounded-xl border text-sm font-medium cursor-pointer" style="border-color:var(--mc-border)">
+        Impor JSON
+        <input type="file" accept=".json" class="hidden" @change="onImportFile($event)">
+      </label>
+    </div>
+
+    <button @click="resetAllData()" class="w-full py-3 rounded-xl border border-red-300 text-red-500 text-sm font-medium">Reset Seluruh Data</button>
+  </section>
+
+  </div>
+  </template>
+</main>
+
+<!-- ============ BOTTOM NAV ============ -->
+<nav x-show="ready" class="fixed bottom-0 inset-x-0 z-30 bg-[var(--mc-surface)]/95 backdrop-blur border-t" style="border-color:var(--mc-border)">
+  <div class="max-w-lg mx-auto grid grid-cols-5 text-[10px]">
+    <template x-for="item in [
+        {p:'dashboard', icon:'layout-dashboard', label:'Beranda'},
+        {p:'kalender', icon:'calendar', label:'Kalender'},
+        {p:'gejala', icon:'heart-pulse', label:'Gejala'},
+        {p:'ibadah', icon:'moon-star', label:'Qadha'},
+        {p:'statistik', icon:'bar-chart-3', label:'Statistik'}
+      ]" :key="item.p">
+      <button @click="goto(item.p)" class="mc-navitem flex flex-col items-center gap-1 py-2.5 opacity-60" :data-active="page===item.p" :class="page===item.p && 'opacity-100'">
+        <i :data-lucide="item.icon" class="w-5 h-5"></i>
+        <span x-text="item.label"></span>
+        <span class="mc-navdot w-1 h-1 rounded-full bg-emerald"></span>
+      </button>
+    </template>
+  </div>
+</nav>
+
+<!-- ============ DAY MODAL / BOTTOM SHEET ============ -->
+<div x-show="modalOpen" x-cloak class="fixed inset-0 z-40 flex items-end sm:items-center sm:justify-center">
+  <div class="absolute inset-0 bg-black/40" @click="modalOpen=false"></div>
+  <div class="relative w-full sm:max-w-md bg-[var(--mc-surface)] rounded-t-3xl sm:rounded-3xl p-5 mc-sheet-enter max-h-[80vh] overflow-y-auto">
+    <div class="w-10 h-1 rounded-full bg-gray-300 mx-auto mb-4 sm:hidden"></div>
+    <template x-if="modalData">
+      <div class="space-y-3">
+        <div>
+          <p class="font-display text-lg font-semibold" x-text="modalData.gregorian"></p>
+          <p class="text-sm text-blush font-arabic" x-text="modalData.hijri"></p>
+        </div>
+        <div class="grid grid-cols-2 gap-2 text-sm">
+          <div class="mc-card p-2.5"><p class="text-[11px] opacity-50">Hari Siklus</p><p x-text="modalData.cycleDay ?? '-'"></p></div>
+          <div class="mc-card p-2.5"><p class="text-[11px] opacity-50">Status</p><p x-text="modalData.status"></p></div>
+          <div class="mc-card p-2.5"><p class="text-[11px] opacity-50">Gejala</p><p x-text="modalData.symptoms"></p></div>
+          <div class="mc-card p-2.5"><p class="text-[11px] opacity-50">Mood</p><p x-text="modalData.mood"></p></div>
+        </div>
+        <template x-if="modalData.holidays.length">
+          <div class="mc-card p-2.5 text-sm"><p class="text-[11px] opacity-50 mb-1">Hari Besar Islam</p><p x-text="modalData.holidays.map(h=>h.name).join(', ')"></p></div>
+        </template>
+        <template x-if="modalData.sunnah.length">
+          <div class="mc-card p-2.5 text-sm"><p class="text-[11px] opacity-50 mb-1">Puasa Sunnah</p><p x-text="modalData.sunnah.map(h=>h.name).join(', ')"></p></div>
+        </template>
+        <div>
+          <p class="text-[11px] opacity-50 mb-1">Catatan</p>
+          <template x-for="n in modalData.notes" :key="n.id"><p class="text-sm mc-card p-2.5 mb-1" x-text="n.text"></p></template>
+          <p x-show="modalData.notes.length===0" class="text-sm opacity-40">Tidak ada catatan</p>
+        </div>
+        <button @click="modalOpen=false" class="w-full py-2.5 rounded-xl bg-emerald-light text-emerald text-sm font-medium">Tutup</button>
+      </div>
+    </template>
+  </div>
+</div>
+
+<!-- ============ MODAL PENGINGAT DALAM APLIKASI (PENGGANTI NOTIFIKASI SISTEM) ============ -->
+<div x-show="inAppAlertOpen" x-cloak class="fixed inset-0 z-50 flex items-end sm:items-center sm:justify-center">
+  <div class="absolute inset-0 bg-black/40" @click="closeInAppAlert()"></div>
+  <div class="relative w-full sm:max-w-sm bg-[var(--mc-surface)] rounded-t-3xl sm:rounded-3xl p-6 mc-sheet-enter text-center space-y-4">
+    <div class="w-10 h-1 rounded-full bg-gray-300 mx-auto sm:hidden"></div>
+    <template x-if="inAppAlertData">
+      <div class="space-y-4">
+        <div class="w-14 h-14 rounded-full bg-emerald-light flex items-center justify-center mx-auto">
+          <i :data-lucide="inAppAlertData.icon" class="w-6 h-6 text-emerald"></i>
+        </div>
+        <div>
+          <p class="font-display text-lg font-semibold" x-text="inAppAlertData.title"></p>
+          <p class="text-sm opacity-60 mt-1.5 leading-relaxed" x-text="inAppAlertData.message"></p>
+        </div>
+        <div class="space-y-2 pt-1">
+          <button x-show="inAppAlertData.actionLabel" @click="onInAppAlertAction()" class="w-full py-3 rounded-xl bg-emerald text-white text-sm font-medium" x-text="inAppAlertData.actionLabel"></button>
+          <button @click="closeInAppAlert()" class="w-full py-3 rounded-xl text-sm font-medium opacity-60">Tutup</button>
+        </div>
+      </div>
+    </template>
+  </div>
+</div>
+
+<!-- ============ MODAL KONFIRMASI STATUS HAID HARIAN ============ -->
+<div x-show="periodCheckModalOpen" x-cloak class="fixed inset-0 z-40 flex items-end sm:items-center sm:justify-center">
+  <div class="absolute inset-0 bg-black/40" @click="closePeriodCheckModal()"></div>
+  <div class="relative w-full sm:max-w-sm bg-[var(--mc-surface)] rounded-t-3xl sm:rounded-3xl p-6 mc-sheet-enter">
+    <div class="w-10 h-1 rounded-full bg-gray-300 mx-auto mb-4 sm:hidden"></div>
+
+    <template x-if="periodCheckStep==='ask'">
+      <div class="space-y-4 text-center">
+        <div class="w-14 h-14 rounded-full bg-blush-light flex items-center justify-center mx-auto">
+          <i data-lucide="droplet" class="w-6 h-6 text-blush"></i>
+        </div>
+        <div>
+          <p class="font-display text-lg font-semibold">Apakah hari ini masih haid?</p>
+          <p class="text-sm opacity-60 mt-1">Bantu kami memastikan data siklusmu tetap akurat</p>
+        </div>
+        <div class="grid grid-cols-2 gap-2 pt-1">
+          <button @click="showPeriodEndDateStep()" class="py-3 rounded-xl border text-sm font-medium" style="border-color:var(--mc-border)">Tidak, sudah selesai</button>
+          <button @click="confirmStillPeriod()" class="py-3 rounded-xl bg-emerald text-white text-sm font-medium">Ya, masih</button>
+        </div>
+      </div>
+    </template>
+
+    <template x-if="periodCheckStep==='confirm-end'">
+      <div class="space-y-4">
+        <p class="font-display text-lg font-semibold text-center">Kapan hari terakhir haid?</p>
+        <input type="date" x-model="periodEndDateInput" class="w-full px-3 py-2.5 rounded-xl border bg-transparent text-sm" style="border-color:var(--mc-border)">
+        <div class="grid grid-cols-2 gap-2">
+          <button @click="periodCheckStep='ask'" class="py-3 rounded-xl border text-sm font-medium" style="border-color:var(--mc-border)">Kembali</button>
+          <button @click="confirmPeriodEnded()" class="py-3 rounded-xl bg-emerald text-white text-sm font-medium">Simpan</button>
+        </div>
+      </div>
+    </template>
+  </div>
+</div>
+
+<!-- ============ TOAST ============ -->
+<div x-show="toast" x-cloak x-transition class="fixed bottom-24 inset-x-0 z-50 flex justify-center px-5">
+  <div class="bg-[var(--mc-ink)] text-[var(--mc-bg)] text-sm px-4 py-2.5 rounded-full shadow-lg" x-text="toast"></div>
+</div>
+
+<style>[x-cloak]{display:none!important}</style>
+
+<!-- ============ APP SCRIPTS (urutan penting) ============ -->
+<script src="config/constants.js"></script>
+<script src="utils/theme.js"></script>
+<script src="utils/format.js"></script>
+<script src="database/db.js"></script>
+<script src="services/hijriService.js"></script>
+<script src="services/cycleService.js"></script>
+<script src="services/qadhaService.js"></script>
+<script src="services/islamicEventsService.js"></script>
+<script src="services/backupService.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

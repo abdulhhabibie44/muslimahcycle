@@ -1,0 +1,86 @@
+/* styles/main.css */
+:root {
+  --mc-emerald: #0B6E4F;
+  --mc-emerald-light: #EAF3EC;
+  --mc-pink: #B8657A;
+  --mc-pink-light: #F7EBEE;
+  --mc-gold: #B8935A;
+  --mc-gold-light: #F5EEDD;
+  --mc-ink: #22291F;
+  --mc-surface: #FFFEFA;
+  --mc-bg: #F7F3EC;
+  --mc-border: #E8E1D3;
+}
+
+html.dark {
+  --mc-emerald: #3FBF8F;
+  --mc-emerald-light: #123527;
+  --mc-pink: #D89AA8;
+  --mc-pink-light: #3A2229;
+  --mc-gold: #D4AF62;
+  --mc-gold-light: #2B2415;
+  --mc-ink: #F3EFE6;
+  --mc-surface: #171F1A;
+  --mc-bg: #10150F;
+  --mc-border: #2A362E;
+}
+
+body {
+  background: var(--mc-bg);
+  color: var(--mc-ink);
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html { color-scheme: light; }
+html.dark { color-scheme: dark; }
+input, select, textarea { color: var(--mc-ink); }
+
+.font-display { font-family: 'Lora', 'Plus Jakarta Sans', serif; }
+.font-arabic { font-family: 'Amiri', serif; }
+
+/* ---------- Card ---------- */
+.mc-card {
+  background: var(--mc-surface);
+  border: 1px solid var(--mc-border);
+  border-radius: 1.25rem;
+  box-shadow: 0 1px 2px rgba(16, 24, 20, 0.04), 0 8px 24px -12px rgba(16, 24, 20, 0.08);
+}
+
+.mc-fade-in { animation: mcFadeIn .35s ease both; }
+@keyframes mcFadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .mc-fade-in { animation: none; }
+}
+
+/* ---------- Bottom nav ---------- */
+.mc-navitem[data-active="true"] { color: var(--mc-emerald); }
+.mc-navitem[data-active="true"] .mc-navdot { opacity: 1; transform: scale(1); }
+.mc-navdot { opacity: 0; transform: scale(0.4); transition: all .2s ease; }
+
+/* ---------- FullCalendar overrides ---------- */
+#calendarEl { font-family: inherit; }
+.fc { --fc-border-color: var(--mc-border); --fc-page-bg-color: transparent; --fc-neutral-bg-color: var(--mc-border); }
+.fc .fc-toolbar { flex-wrap: wrap; gap: 8px; row-gap: 6px; }
+.fc .fc-toolbar-chunk { display: flex; align-items: center; }
+.fc .fc-button { padding: 0.35rem 0.6rem !important; font-size: 0.8rem !important; }
+.fc .fc-toolbar-title { font-family: 'Lora', serif; font-size: 1.15rem; color: var(--mc-ink); }
+.fc .fc-button { background: var(--mc-emerald-light) !important; border: none !important; color: var(--mc-emerald) !important; border-radius: 0.6rem !important; box-shadow: none !important; text-transform: capitalize; }
+.fc .fc-button-primary:not(:disabled).fc-button-active { background: var(--mc-emerald) !important; color: white !important; }
+.fc .fc-daygrid-day-number { color: var(--mc-ink); font-weight: 600; font-size: 0.85rem; }
+.fc-daygrid-day-frame { position: relative; min-height: 62px; padding-bottom: 10px !important; }
+.hijri-badge { font-size: 0.62rem; color: var(--mc-pink); font-family: 'Amiri', serif; margin-left: 4px; opacity: 0.9; }
+.today-cell { background: var(--mc-emerald-light) !important; border-radius: 0.6rem; }
+.day-dots { position: absolute; bottom: 4px; left: 6px; display: flex; gap: 2px; }
+.day-dot { width: 6px; height: 6px; border-radius: 999px; display: inline-block; }
+.fc-list-event-dot { display: none; }
+.fc-daygrid-day-top { flex-direction: row; align-items: center; }
+
+/* ---------- Bottom sheet ---------- */
+.mc-sheet-enter { animation: mcSheetUp .3s ease both; }
+@keyframes mcSheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+/* ---------- Scrollbar ---------- */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-thumb { background: var(--mc-border); border-radius: 999px; }
