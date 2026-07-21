@@ -27,7 +27,7 @@ document.addEventListener('alpine:init', () => {
 
     // form states
     cycleForm: { id: null, startDate: dayjs().format('YYYY-MM-DD'), endDate: '', intensity: 'sedang', bloodColor: 'merah_terang', hasSpotting: false, note: '' },
-    symptomForm: { date: dayjs().format('YYYY-MM-DD'), symptomList: [], mood: 'biasa' },
+    symptomForm: { date: dayjs().format('YYYY-MM-DD'), symptomList: [], mood: null },
     noteForm: { date: dayjs().format('YYYY-MM-DD'), text: '' },
     qadhaPayForm: { date: dayjs().format('YYYY-MM-DD'), amount: 1, note: '' },
     manualQadhaForm: { hijriYear: null, amount: 1, date: dayjs().format('YYYY-MM-DD'), note: '' },
@@ -299,13 +299,38 @@ document.addEventListener('alpine:init', () => {
       const i = this.symptomForm.symptomList.indexOf(id);
       if (i >= 0) this.symptomForm.symptomList.splice(i, 1); else this.symptomForm.symptomList.push(id);
     },
+    /**
+     * Dipanggil tiap kali tanggal di form Gejala berubah (termasuk saat halaman
+     * pertama dibuka). Kalau tanggal itu sudah punya catatan, form diisi ulang
+     * dengan data yang ada; kalau belum, form dikosongkan (tidak menyisakan
+     * centang/mood dari tanggal sebelumnya).
+     */
+    async loadSymptomForDate() {
+      const existing = await db.symptoms.where('date').equals(this.symptomForm.date).first();
+      if (existing) {
+        this.symptomForm.symptomList = [...existing.symptomList];
+        this.symptomForm.mood = existing.mood;
+      } else {
+        this.symptomForm.symptomList = [];
+        this.symptomForm.mood = null;
+      }
+    },
     async saveSymptomForm() {
       try {
+        // Alpine.js membungkus array/objek reaktif dengan Proxy -- IndexedDB tidak
+        // bisa menyimpan Proxy langsung (DataCloneError), jadi ubah dulu jadi array polos.
+        const plainSymptomList = JSON.parse(JSON.stringify(this.symptomForm.symptomList));
+
         const existing = await db.symptoms.where('date').equals(this.symptomForm.date).first();
         if (existing) {
-          await db.symptoms.update(existing.id, { symptomList: this.symptomForm.symptomList, mood: this.symptomForm.mood });
+          await db.symptoms.update(existing.id, { symptomList: plainSymptomList, mood: this.symptomForm.mood });
         } else {
-          await db.symptoms.add({ ...this.symptomForm, createdAt: new Date().toISOString() });
+          await db.symptoms.add({
+            date: this.symptomForm.date,
+            symptomList: plainSymptomList,
+            mood: this.symptomForm.mood,
+            createdAt: new Date().toISOString()
+          });
         }
         this.showToast('Gejala & mood tersimpan');
       } catch (e) {

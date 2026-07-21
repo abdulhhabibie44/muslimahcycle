@@ -256,10 +256,10 @@
   <!-- ============================================================ -->
   <!-- GEJALA & MOOD -->
   <!-- ============================================================ -->
-  <section x-show="page==='gejala'" class="mc-fade-in space-y-4">
+  <section x-show="page==='gejala'" class="mc-fade-in space-y-4" x-init="loadSymptomForDate()">
     <h2 class="font-display text-xl font-semibold">Gejala & Mood</h2>
     <div class="mc-card p-4 space-y-4">
-      <input type="date" x-model="symptomForm.date" class="w-full px-3 py-2.5 rounded-xl border bg-transparent" style="border-color:var(--mc-border)">
+      <input type="date" x-model="symptomForm.date" @change="loadSymptomForDate()" class="w-full px-3 py-2.5 rounded-xl border bg-transparent" style="border-color:var(--mc-border)">
       <div>
         <label class="text-xs opacity-60 block mb-2">Gejala</label>
         <div class="grid grid-cols-2 gap-2">
