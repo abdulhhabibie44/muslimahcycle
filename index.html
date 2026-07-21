@@ -264,8 +264,8 @@
         <label class="text-xs opacity-60 block mb-2">Gejala</label>
         <div class="grid grid-cols-2 gap-2">
           <template x-for="s in C.SYMPTOMS" :key="s.id">
-            <button type="button" @click="toggleSymptom(s.id)" class="py-2 px-3 rounded-xl text-sm border flex items-center gap-2" :class="symptomForm.symptomList.includes(s.id) ? 'bg-blush-light border-blush text-pink-600' : 'border-[var(--mc-border)]'">
-              <i :data-lucide="s.icon" class="w-4 h-4"></i><span x-text="s.label"></span>
+            <button type="button" @click="toggleSymptom(s.id)" class="min-h-[76px] px-2 py-3 rounded-xl text-xs border flex flex-col items-center justify-center gap-1.5 text-center leading-tight" :class="symptomForm.symptomList.includes(s.id) ? 'bg-blush-light border-blush text-pink-600' : 'border-[var(--mc-border)]'">
+              <i :data-lucide="s.icon" class="w-4 h-4 flex-shrink-0"></i><span x-text="s.label"></span>
             </button>
           </template>
         </div>
