@@ -65,17 +65,27 @@ input, select, textarea { color: var(--mc-ink); }
 .fc .fc-toolbar { flex-wrap: wrap; gap: 8px; row-gap: 6px; }
 .fc .fc-toolbar-chunk { display: flex; align-items: center; }
 .fc .fc-button { padding: 0.35rem 0.6rem !important; font-size: 0.8rem !important; }
+.fc .fc-button-group { display: flex; overflow: hidden; border-radius: 0.6rem; }
+.fc .fc-button-group .fc-button { border-radius: 0 !important; position: relative; }
+.fc .fc-button-group .fc-button + .fc-button { border-left: 1px solid var(--mc-border) !important; }
 .fc .fc-toolbar-title { font-family: 'Lora', serif; font-size: 1.15rem; color: var(--mc-ink); }
 .fc .fc-button { background: var(--mc-emerald-light) !important; border: none !important; color: var(--mc-emerald) !important; border-radius: 0.6rem !important; box-shadow: none !important; text-transform: capitalize; }
 .fc .fc-button-primary:not(:disabled).fc-button-active { background: var(--mc-emerald) !important; color: white !important; }
 .fc .fc-daygrid-day-number { color: var(--mc-ink); font-weight: 600; font-size: 0.85rem; }
-.fc-daygrid-day-frame { position: relative; min-height: 62px; padding-bottom: 10px !important; }
+.fc-daygrid-day-frame { position: relative; min-height: 46px; padding-bottom: 25px !important; }
+.fc-daygrid-day-top { flex-direction: row; align-items: center; }
 .hijri-badge { font-size: 0.62rem; color: var(--mc-pink); font-family: 'Amiri', serif; margin-left: 4px; opacity: 0.9; }
 .today-cell { background: var(--mc-emerald-light) !important; border-radius: 0.6rem; }
 .day-dots { position: absolute; bottom: 4px; left: 6px; display: flex; gap: 2px; }
 .day-dot { width: 6px; height: 6px; border-radius: 999px; display: inline-block; }
+
+/* Hapus ruang kosong bawaan FullCalendar yang disiapkan untuk "event" --
+   kita tidak pakai fitur itu (titik-titik kita taruh manual di day-dots),
+   jadi ruang ini cuma buang-buang tinggi kotak tanpa guna. */
+.fc .fc-daygrid-day-events { margin-top: 0 !important; min-height: 0 !important; }
+.fc .fc-daygrid-body-natural .fc-daygrid-day-events { margin-bottom: 0 !important; }
+.fc .fc-daygrid-body-unbalanced .fc-daygrid-day-events { min-height: 0 !important; }
 .fc-list-event-dot { display: none; }
-.fc-daygrid-day-top { flex-direction: row; align-items: center; }
 
 /* ---------- Bottom sheet ---------- */
 .mc-sheet-enter { animation: mcSheetUp .3s ease both; }
