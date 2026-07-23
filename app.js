@@ -382,7 +382,10 @@ document.addEventListener('alpine:init', () => {
           const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
           const mid = new Date((arg.start.getTime() + arg.end.getTime()) / 2);
           const titleEl = el.querySelector('.fc-toolbar-title');
-          if (titleEl) titleEl.textContent = `${months[mid.getMonth()]} ${mid.getFullYear()}`;
+          const hijriMid = HijriService.getHijriDate(dayjs(mid), self.settings);
+          if (titleEl) {
+            titleEl.innerHTML = `${months[mid.getMonth()]} ${mid.getFullYear()}<span class="fc-title-hijri">${hijriMid.monthName} ${hijriMid.year}H</span>`;
+          }
 
           // Perbaikan bug: paksa hitung ulang ukuran kalender setelah render/ganti tampilan,
           // supaya tidak "hilang" kalau sempat di-render saat container belum sepenuhnya terlihat.
@@ -396,7 +399,8 @@ document.addEventListener('alpine:init', () => {
             const badge = document.createElement('div');
             badge.className = 'hijri-badge';
             badge.title = hijri.label;
-            badge.textContent = `${hijri.day} ${shortHijriMonths[hijri.month - 1] || ''}`;
+            // Nama bulan cuma ditampilkan di tanggal 1 tiap bulan Hijriyah; selain itu cuma angka
+            badge.textContent = hijri.day === 1 ? (shortHijriMonths[hijri.month - 1] || '') : `${hijri.day}`;
             const frame = info.el.querySelector('.fc-daygrid-day-top') || info.el;
             frame.appendChild(badge);
 

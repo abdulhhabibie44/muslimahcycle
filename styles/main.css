@@ -68,15 +68,16 @@ input, select, textarea { color: var(--mc-ink); }
 .fc .fc-button-group { display: flex; overflow: hidden; border-radius: 0.6rem; }
 .fc .fc-button-group .fc-button { border-radius: 0 !important; position: relative; }
 .fc .fc-button-group .fc-button + .fc-button { border-left: 1px solid var(--mc-border) !important; }
-.fc .fc-toolbar-title { font-family: 'Lora', serif; font-size: 1.15rem; color: var(--mc-ink); }
+.fc .fc-toolbar-title { font-family: 'Lora', serif; font-size: 1.15rem; color: var(--mc-ink); line-height: 1.2; }
+.fc-title-hijri { display: block; font-family: 'Amiri', serif; font-size: 0.7rem; color: var(--mc-pink); font-weight: 400; margin-top: 1px; }
 .fc .fc-button { background: var(--mc-emerald-light) !important; border: none !important; color: var(--mc-emerald) !important; border-radius: 0.6rem !important; box-shadow: none !important; text-transform: capitalize; }
 .fc .fc-button-primary:not(:disabled).fc-button-active { background: var(--mc-emerald) !important; color: white !important; }
-.fc .fc-daygrid-day-number { color: var(--mc-ink); font-weight: 600; font-size: 0.85rem; }
-.fc-daygrid-day-frame { position: relative; min-height: 46px; padding-bottom: 25px !important; }
-.fc-daygrid-day-top { flex-direction: row; align-items: center; }
-.hijri-badge { font-size: 0.62rem; color: var(--mc-pink); font-family: 'Amiri', serif; margin-left: 4px; opacity: 0.9; }
+.fc .fc-daygrid-day-number { color: var(--mc-ink); font-weight: 700; font-size: 1rem; }
+.fc-daygrid-day-frame { position: relative; min-height: 52px; padding: 0em 0.3em 0.7em !important; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.fc-daygrid-day-top { flex-direction: column !important; align-items: center !important; justify-content: center !important; width: 100%; gap: 0; }
+.hijri-badge { font-size: 0.6rem; color: var(--mc-pink); font-family: 'Amiri', serif; margin: 0; opacity: 0.85; text-align: center; }
 .today-cell { background: var(--mc-emerald-light) !important; border-radius: 0.6rem; }
-.day-dots { position: absolute; bottom: 4px; left: 6px; display: flex; gap: 2px; }
+.day-dots { position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); display: flex; gap: 2px; }
 .day-dot { width: 6px; height: 6px; border-radius: 999px; display: inline-block; }
 
 /* Hapus ruang kosong bawaan FullCalendar yang disiapkan untuk "event" --

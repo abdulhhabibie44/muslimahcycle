@@ -5,9 +5,9 @@
 // Zulhijah yang ditentukan sendiri oleh pengguna (mis. mengikuti keputusan pemerintah).
 
 const HIJRI_MONTHS = [
-  'Muh', 'Saf', 'Rab I', 'Rab II',
-  'Jum I', 'Jum II', 'Raj', "Sya'",
-  'Ram', 'Syw', 'DzuQ', 'DzuH'
+  'Muharram', 'Safar', "Rabiul Awal", "Rabiul Akhir",
+  'Jumadil Awal', 'Jumadil Akhir', 'Rajab', "Sya'ban",
+  'Ramadhan', 'Syawal', "Dzulqa'dah", 'Dzulhijjah'
 ];
 
 // Algoritma tabular Kuwaiti: konversi Julian Day <-> Hijri
@@ -16,7 +16,10 @@ function gregorianToJD(date) {
 }
 
 function jdToHijri(jd) {
-  jd = Math.floor(jd) + 0.5;
+  // PENTING: jangan tambah 0.5 di sini -- itu bikin pembulatan hari selalu
+  // "kebulat ke atas" 1 hari lebih banyak di tiap pergantian bulan (tanggal 1
+  // keloncat jadi tanggal 2, hari terakhir bulan salah jadi 31 padahal maks 30).
+  jd = Math.floor(jd);
   const iyear0 = Math.floor((30 * (jd - 1948440) + 10646) / 10631);
   let iyear = iyear0;
   let iMonth, iDay;
