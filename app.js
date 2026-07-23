@@ -436,7 +436,11 @@ document.addEventListener('alpine:init', () => {
       const markers = [];
       const cycleEvents = CycleService.buildCalendarEvents(this.cycles, dayjs(dateStr).startOf('month').subtract(7, 'day'), dayjs(dateStr).endOf('month').add(7, 'day'), this.settings);
       const legend = this.C.LEGEND;
-      const colorFor = (t) => (legend.find(l => l.type === t) || {}).color;
+      const isDark = document.documentElement.classList.contains('dark');
+      const colorFor = (t) => {
+        const item = legend.find(l => l.type === t) || {};
+        return (isDark && item.colorDark) ? item.colorDark : item.color;
+      };
 
       cycleEvents.filter(e => e.date === dateStr).forEach(e => markers.push({ color: colorFor(e.type) }));
 

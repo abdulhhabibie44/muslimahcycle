@@ -33,14 +33,14 @@ window.APP_CONSTANTS = {
     { id: 'hitam', label: 'Hitam' }
   ],
   LEGEND: [
-    { type: 'haid', color: '#EF4444', label: 'Hari Haid' },
-    { type: 'prediksi_haid', color: '#A855F7', label: 'Prediksi Haid' },
-    { type: 'subur', color: '#22C55E', label: 'Masa Subur' },
-    { type: 'ovulasi', color: '#EAB308', label: 'Ovulasi' },
-    { type: 'qadha', color: '#3B82F6', label: 'Puasa Qadha' },
-    { type: 'sunnah', color: '#F97316', label: 'Puasa Sunnah' },
-    { type: 'holiday', color: '#065F46', label: 'Hari Besar Islam' },
-    { type: 'note', color: '#F59E0B', label: 'Catatan', isStar: true },
-    { type: 'today', color: '#6B7280', label: 'Hari Ini' }
+    { type: 'haid', color: '#EF4444', colorDark: '#F87171', label: 'Hari Haid' },
+    { type: 'prediksi_haid', color: '#A855F7', colorDark: '#C084FC', label: 'Prediksi Haid' },
+    { type: 'subur', color: '#22C55E', colorDark: '#4ADE80', label: 'Masa Subur' },
+    { type: 'ovulasi', color: '#EAB308', colorDark: '#FDE047', label: 'Ovulasi' },
+    { type: 'qadha', color: '#3B82F6', colorDark: '#60A5FA', label: 'Puasa Qadha' },
+    { type: 'sunnah', color: '#B45309', colorDark: '#FB923C', label: 'Puasa Sunnah' },
+    { type: 'holiday', color: '#065F46', colorDark: '#10B981', label: 'Hari Besar Islam' },
+    { type: 'note', color: '#0891B2', colorDark: '#22D3EE', label: 'Catatan', isStar: true },
+    { type: 'today', color: '#6B7280', colorDark: '#9CA3AF', label: 'Hari Ini' }
   ]
 };

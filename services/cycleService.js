@@ -137,7 +137,11 @@ function buildCalendarEvents(cycles, rangeStart, rangeEnd, settings) {
   if (latest) {
     let cursorStart = dayjs(latest.startDate).add(avgLen, 'day');
     let guard = 0;
-    while (cursorStart.isBefore(dayjs(rangeEnd)) && guard < 24) {
+    // Loop dilanjutkan selama masa subur (14 hari SEBELUM prediksi haid) masih
+    // mungkin masuk rentang tampilan, bukan cuma cek tanggal prediksi haidnya saja --
+    // supaya titik masa subur/ovulasi tidak hilang saat prediksi haidnya sendiri
+    // sudah di luar bulan yang sedang dilihat.
+    while (cursorStart.subtract(21, 'day').isBefore(dayjs(rangeEnd)) && guard < 24) {
       const cursorEnd = cursorStart.add(avgPeriod - 1, 'day');
       let cur = cursorStart;
       while (!cur.isAfter(cursorEnd, 'day')) {
